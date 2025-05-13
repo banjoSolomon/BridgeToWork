@@ -1,0 +1,7 @@
+#configmap.yml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-config
+data:
+  PORT: "3000"
