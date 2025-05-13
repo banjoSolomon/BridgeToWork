@@ -1,11 +1,11 @@
-#todo.py
 from flask import Flask, request, jsonify
+from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
+metrics = PrometheusMetrics(app)  # Automatically exposes /metrics
 
 tasks = []
 id_counter = 1
-
 
 @app.route('/tasks', methods=['POST'])
 def add_task():
@@ -16,11 +16,9 @@ def add_task():
     id_counter += 1
     return jsonify(task), 201
 
-
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
     return jsonify(tasks)
-
 
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
@@ -28,11 +26,9 @@ def delete_task(task_id):
     tasks = [task for task in tasks if task['id'] != task_id]
     return '', 204
 
-
 @app.route('/health', methods=['GET'])
 def health():
     return 'OK', 200
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3000)
