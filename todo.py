@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
-metrics = PrometheusMetrics(app)  # Automatically exposes /metrics
+metrics = PrometheusMetrics(app)
 
 tasks = []
 id_counter = 1

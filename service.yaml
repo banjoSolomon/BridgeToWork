@@ -1,17 +1,32 @@
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: todo-service
+#  annotations:
+#    prometheus.io/scrape: "true"
+#    prometheus.io/path: "/metrics"
+#    prometheus.io/port: "3000"
+#spec:
+#  selector:
+#    app: todo
+#  type: NodePort
+#  ports:
+#    - protocol: TCP
+#      port: 80
+#      targetPort: 3000
+#      nodePort: 30080
 apiVersion: v1
 kind: Service
 metadata:
   name: todo-service
-  annotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/path: "/metrics"
-    prometheus.io/port: "3000"
+  labels:
+    app: todo
+    release: prometheus  # 👈 Required for ServiceMonitor discovery
 spec:
   selector:
     app: todo
-  type: NodePort
   ports:
-    - protocol: TCP
-      port: 80
+    - name: http
+      protocol: TCP
+      port: 3000
       targetPort: 3000
-      nodePort: 30080
