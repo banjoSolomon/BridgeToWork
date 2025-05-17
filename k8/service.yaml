@@ -21,7 +21,7 @@ metadata:
   name: todo-service
   labels:
     app: todo
-    release: prometheus  # 👈 Required for ServiceMonitor discovery
+    release: prometheus
 spec:
   selector:
     app: todo
@@ -30,3 +30,6 @@ spec:
       protocol: TCP
       port: 3000
       targetPort: 3000
+      nodePort: 30080
+  type: NodePort
+
