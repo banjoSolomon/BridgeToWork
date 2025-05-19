@@ -1,32 +1,100 @@
+# from flask import Flask, request, jsonify
+# from prometheus_flask_exporter import PrometheusMetrics
+#
+# app = Flask(__name__)
+# metrics = PrometheusMetrics(app)
+#
+# tasks = []
+# id_counter = 1
+#
+#
+# @app.route('/tasks', methods=['POST'])
+# def add_task():
+#     global id_counter
+#     data = request.get_json()
+#     task = {'id': id_counter, 'title': data.get('title')}
+#     tasks.append(task)
+#     id_counter += 1
+#     return jsonify(task), 201
+#
+#
+# @app.route('/tasks', methods=['GET'])
+# def get_tasks():
+#     return jsonify(tasks)
+#
+#
+# @app.route('/tasks/<int:task_id>', methods=['DELETE'])
+# def delete_task(task_id):
+#     global tasks
+#     tasks = [task for task in tasks if task['id'] != task_id]
+#     return '', 204
+#
+#
+# @app.route('/health', methods=['GET'])
+# def health():
+#     return 'OK', 200
+#
+#
+# if __name__ == '__main__':
+#     app.run(host='0.0.0.0', port=3000)
+
 from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
 from prometheus_flask_exporter import PrometheusMetrics
+import os
 
 app = Flask(__name__)
 metrics = PrometheusMetrics(app)
 
-tasks = []
-id_counter = 1
+# Database configuration from environment variables
+DB_USER = os.environ.get("DB_USER", "flask_user")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "password")
+DB_HOST = os.environ.get("DB_HOST", "localhost")
+DB_PORT = os.environ.get("DB_PORT", "5432")
+DB_NAME = os.environ.get("DB_NAME", "flask_tasks")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
 
 
+# Task model
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+
+
+# Create tables
+with app.app_context():
+    db.create_all()
+
+
+# Routes
 @app.route('/tasks', methods=['POST'])
 def add_task():
-    global id_counter
     data = request.get_json()
-    task = {'id': id_counter, 'title': data.get('title')}
-    tasks.append(task)
-    id_counter += 1
-    return jsonify(task), 201
+    title = data.get('title')
+    if not title:
+        return jsonify({"error": "Title is required"}), 400
+
+    task = Task(title=title)
+    db.session.add(task)
+    db.session.commit()
+    return jsonify({'id': task.id, 'title': task.title}), 201
 
 
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
-    return jsonify(tasks)
+    tasks = Task.query.all()
+    return jsonify([{'id': task.id, 'title': task.title} for task in tasks])
 
 
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
-    global tasks
-    tasks = [task for task in tasks if task['id'] != task_id]
+    task = Task.query.get_or_404(task_id)
+    db.session.delete(task)
+    db.session.commit()
     return '', 204
 
 
@@ -36,4 +104,4 @@ def health():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3000)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 3000)))

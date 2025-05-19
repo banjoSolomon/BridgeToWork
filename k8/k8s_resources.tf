@@ -33,7 +33,7 @@ resource "kubernetes_deployment" "todo_api" {
       spec {
         container {
           name  = "todo-api"
-          image = "solomon11/todo-api:latest"  # <-- your Docker Hub image
+          image = "solomon11/todo-api:latest"
 
           port {
             container_port = 3000
