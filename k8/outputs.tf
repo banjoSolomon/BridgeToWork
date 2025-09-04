@@ -18,6 +18,19 @@ output "db_endpoints" {
   value = [aws_db_instance.db_a.endpoint, aws_db_instance.db_b.endpoint]
 }
 
-output "eks_cluster_endpoint" {
-  value = aws_eks_cluster.main.endpoint
+
+output "eks_cluster_a_endpoint" {
+  value = aws_eks_cluster.cluster_a.endpoint
+}
+
+output "eks_cluster_b_endpoint" {
+  value = aws_eks_cluster.cluster_b.endpoint
+}
+
+output "eks_cluster_a_name" {
+  value = aws_eks_cluster.cluster_a.name
+}
+
+output "eks_cluster_b_name" {
+  value = aws_eks_cluster.cluster_b.name
 }
