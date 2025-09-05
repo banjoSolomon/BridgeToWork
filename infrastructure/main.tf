@@ -1,198 +1,148 @@
-resource "aws_eks_cluster" "eks_a" {
-  name     = "${var.project_name}-eks-a"
-  role_arn = aws_iam_role.eks_cluster_role_a.arn
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
 
-  vpc_config {
-    subnet_ids = [aws_subnet.private_a.id]
+  tags = {
+    Name = "${var.project_name}-vpc"
   }
-
-  depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy_a]
 }
 
-resource "aws_eks_node_group" "nodes_a" {
-  cluster_name    = aws_eks_cluster.eks_a.name
-  node_group_name = "${var.project_name}-eks-nodes-a"
-  node_role_arn   = aws_iam_role.eks_node_role_a.arn
-  subnet_ids      = [aws_subnet.private_a.id]
-
-  scaling_config {
-    desired_size = 1
-    max_size     = 2
-    min_size     = 1
-  }
-
-  instance_types = [var.eks_node_instance_type]
-
-  depends_on = [
-    aws_iam_role_policy_attachment.eks_worker_node_policy_a,
-    aws_iam_role_policy_attachment.eks_cni_policy_a,
-    aws_iam_role_policy_attachment.eks_registry_policy_a
-  ]
-}
-
-# IAM Roles for Cluster A
-resource "aws_iam_role" "eks_cluster_role_a" {
-  name = "${var.project_name}-eks-cluster-role-a"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Principal = {
-        Service = "eks.amazonaws.com"
-      },
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eks_cluster_policy_a" {
-  role       = aws_iam_role.eks_cluster_role_a.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-}
-
-resource "aws_iam_role" "eks_node_role_a" {
-  name = "${var.project_name}-eks-node-role-a"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Principal = {
-        Service = "ec2.amazonaws.com"
-      },
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eks_worker_node_policy_a" {
-  role       = aws_iam_role.eks_node_role_a.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_cni_policy_a" {
-  role       = aws_iam_role.eks_node_role_a.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_registry_policy_a" {
-  role       = aws_iam_role.eks_node_role_a.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_security_group" "eks_nodes_a" {
+resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+  tags = {
+    Name = "${var.project_name}-igw"
+  }
+}
+
+
+resource "aws_subnet" "public_a" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "${var.aws_region}a"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "${var.project_name}-public-a"
+  }
+}
+
+resource "aws_subnet" "public_b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "${var.aws_region}b"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "${var.project_name}-public-b"
+  }
+}
+
+
+resource "aws_subnet" "private_a" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.11.0/24"
+  availability_zone = "${var.aws_region}a"
+
+  tags = {
+    Name = "${var.project_name}-private-a"
+  }
+}
+
+resource "aws_subnet" "private_b" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.12.0/24"
+  availability_zone = "${var.aws_region}b"
+
+  tags = {
+    Name = "${var.project_name}-private-b"
+  }
+}
+
+# NAT Gateways
+resource "aws_eip" "nat_a" {
+  vpc = true
+}
+
+resource "aws_nat_gateway" "nat_a" {
+  allocation_id = aws_eip.nat_a.id
+  subnet_id     = aws_subnet.public_a.id
+
+  tags = {
+    Name = "${var.project_name}-nat-a"
+  }
+}
+
+resource "aws_eip" "nat_b" {
+  vpc = true
+}
+
+resource "aws_nat_gateway" "nat_b" {
+  allocation_id = aws_eip.nat_b.id
+  subnet_id     = aws_subnet.public_b.id
+
+  tags = {
+    Name = "${var.project_name}-nat-b"
+  }
+}
+
+# Route Tables
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
   }
 
   tags = {
-    Name = "${var.project_name}-eks-nodes-a-sg"
+    Name = "${var.project_name}-public-rt"
   }
 }
 
-
-
-
-resource "aws_eks_cluster" "eks_b" {
-  name     = "${var.project_name}-eks-b"
-  role_arn = aws_iam_role.eks_cluster_role_b.arn
-
-  vpc_config {
-    subnet_ids = [aws_subnet.private_b.id]
-  }
-
-  depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy_b]
+resource "aws_route_table_association" "public_a" {
+  subnet_id      = aws_subnet.public_a.id
+  route_table_id = aws_route_table.public.id
 }
 
-resource "aws_eks_node_group" "nodes_b" {
-  cluster_name    = aws_eks_cluster.eks_b.name
-  node_group_name = "${var.project_name}-eks-nodes-b"
-  node_role_arn   = aws_iam_role.eks_node_role_b.arn
-  subnet_ids      = [aws_subnet.private_b.id]
-
-  scaling_config {
-    desired_size = 1
-    max_size     = 2
-    min_size     = 1
-  }
-
-  instance_types = [var.eks_node_instance_type]
-
-  depends_on = [
-    aws_iam_role_policy_attachment.eks_worker_node_policy_b,
-    aws_iam_role_policy_attachment.eks_cni_policy_b,
-    aws_iam_role_policy_attachment.eks_registry_policy_b
-  ]
+resource "aws_route_table_association" "public_b" {
+  subnet_id      = aws_subnet.public_b.id
+  route_table_id = aws_route_table.public.id
 }
 
-# IAM Roles for Cluster B
-resource "aws_iam_role" "eks_cluster_role_b" {
-  name = "${var.project_name}-eks-cluster-role-b"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Principal = {
-        Service = "eks.amazonaws.com"
-      },
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eks_cluster_policy_b" {
-  role       = aws_iam_role.eks_cluster_role_b.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-}
-
-resource "aws_iam_role" "eks_node_role_b" {
-  name = "${var.project_name}-eks-node-role-b"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Principal = {
-        Service = "ec2.amazonaws.com"
-      },
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eks_worker_node_policy_b" {
-  role       = aws_iam_role.eks_node_role_b.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_cni_policy_b" {
-  role       = aws_iam_role.eks_node_role_b.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_registry_policy_b" {
-  role       = aws_iam_role.eks_node_role_b.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_security_group" "eks_nodes_b" {
+resource "aws_route_table" "private_a" {
   vpc_id = aws_vpc.main.id
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat_a.id
   }
 
   tags = {
-    Name = "${var.project_name}-eks-nodes-b-sg"
+    Name = "${var.project_name}-private-a-rt"
   }
+}
+
+resource "aws_route_table_association" "private_a" {
+  subnet_id      = aws_subnet.private_a.id
+  route_table_id = aws_route_table.private_a.id
+}
+
+resource "aws_route_table" "private_b" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat_b.id
+  }
+
+  tags = {
+    Name = "${var.project_name}-private-b-rt"
+  }
+}
+
+resource "aws_route_table_association" "private_b" {
+  subnet_id      = aws_subnet.private_b.id
+  route_table_id = aws_route_table.private_b.id
 }
