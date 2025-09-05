@@ -68,7 +68,7 @@ Terraform exports:
 
 ---
 
-## ⚙️ CI/CD Pipeline (GitHub Actions)  
+##  CI/CD Pipeline (GitHub Actions)  
 
 ### 1. Reusable Workflow (`.github/workflows/docker-build.yml`)  
 - Builds a Docker image from the repo.  
