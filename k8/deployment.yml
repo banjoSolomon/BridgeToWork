@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: todo
-          image: solomon11/todo-api:latest
+          image: BridgeToWork/todo-api:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
