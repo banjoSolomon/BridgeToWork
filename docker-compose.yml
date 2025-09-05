@@ -24,3 +24,4 @@ services:
       DB_NAME: todo_db
     depends_on:
       - db
+
