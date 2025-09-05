@@ -8,7 +8,7 @@ import os
 app = Flask(__name__)
 metrics = PrometheusMetrics(app)
 
-# Database configuration from environment variables
+
 DB_USER = os.environ.get("DB_USER", "flask_user")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "password")
 DB_HOST = os.environ.get("DB_HOST", "localhost")
@@ -21,18 +21,18 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
-# Task model
+
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
 
 
-# Create tables
+
 with app.app_context():
     db.create_all()
 
 
-# Routes
+
 @app.route('/tasks', methods=['POST'])
 def add_task():
     data = request.get_json()
