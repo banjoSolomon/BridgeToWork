@@ -37,3 +37,8 @@ jobs:
         run: |
           kubectl apply -f k8/deployment.yml
           kubectl apply -f k8/service.yml
+          
+      - name: Deploy Prometheus Monitoring
+        run: |
+          kubectl apply -f k8/prometheus-deployment.yml
+          kubectl apply -f k8/prometheus-service.yaml
