@@ -12,7 +12,7 @@ services:
       - "5433:5432"
 
   todo-api:
-    image: solomon11/todo-api:latest
+    image: BridgeToWork/todo-api:latest
     restart: always
     ports:
       - "8000:3000"
